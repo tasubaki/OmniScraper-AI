@@ -14,7 +14,7 @@ graph TD
     
     API_Gateway -->|1. Đẩy Task kèm params| RabbitMQ[(Message Broker: RabbitMQ)]
     
-    subgraph Celery_Worker_Cluster [Các Server xử lý nề (Worker)]
+    subgraph Celery_Worker_Cluster [Các Server xu ly nen]
         WorkerFB[Worker Facebook]
         WorkerTT[Worker TikTok]
     end
@@ -22,19 +22,19 @@ graph TD
     RabbitMQ -->|2. Phân phối dựa theo Queue| WorkerFB
     RabbitMQ -->|2. Phân phối dựa theo Queue| WorkerTT
     
-    WorkerFB -->|3a. Xin Token| TokenMgr[Token Manager\nRound-Robin]
-    WorkerFB -->|4a. Gọi API bằng Token| FB_API{Facebook\nGraph API}
+    WorkerFB -->|3a. Xin Token| TokenMgr[Token Manager Round-Robin]
+    WorkerFB -->|4a. Gọi API bằng Token| FB_API{Facebook Graph API}
     
     WorkerTT -->|4b. Parse HTML/API| TT_Web{TikTok Web}
     
     FB_API -.->|5a. Trả JSON Data| WorkerFB
     TT_Web -.->|5b. Trả JSON Data| WorkerTT
     
-    WorkerFB -->|6. Lưu Data hoặc Đẩy tiếp| Database[(PostgreSQL/Elastic\nOr Next Queue)]
+    WorkerFB -->|6. Lưu Data hoặc Đẩy tiếp| Database[(PostgreSQL hoặc Elastic)]
     WorkerTT -->|6. Lưu Data hoặc Đẩy tiếp| Database
     
-    WorkerFB -.->|Cache/Chống trùng lặp| Redis[(Redis Cache)]
-    WorkerTT -.->|Cache/Chống trùng lặp| Redis
+    WorkerFB -.->|Cache Data| Redis[(Redis Cache)]
+    WorkerTT -.->|Cache Data| Redis
 ```
 
 ### 🌟 Các tính năng chính
