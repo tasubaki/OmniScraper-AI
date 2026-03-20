@@ -1,42 +1,52 @@
+import asyncio
 import logging
 from app.core.celery_app import celery_app
-from app.crawlers.facebook.post_crawler import FacebookGraphCrawler
-from app.core.token_manager import token_pool
+from app.core.config import settings
+from app.core.cookie_manager import CookieManager
+from app.crawlers.facebook.web_crawler import FacebookWebCrawler
 
 logger = logging.getLogger(__name__)
 
-@celery_app.task(bind=True, max_retries=3, queue="facebook-meta")
-def process_metadata(self, task_payload: dict):
+# Khởi tạo Pool Backend
+cookie_manager = CookieManager(settings.fb_cookies)
+
+@celery_app.task(name="facebook.crawl_meta", bind=True, max_retries=3)
+def process_metadata(self, task_data: dict):
     """
-    Tương đương PostMetaConsumer trong C# (chế độ CrawlMethod: Metadata, Comment, Share)
-    :param task_payload: {"url": "...", "post_id": "...", "CrawlMethod": 1}
+    Xử lý tác vụ cào bài viết Facebook sử dụng kỹ thuật Web Scraping (truyền Cookie)
+    thay vì Graph API Token. Kỹ thuật này giúp tránh rào cản Page Public Content Access.
     """
-    logger.info(f"[{self.request.id}] Nhận task Facebook Meta: {task_payload}")
+    logger.info(f"Worker nhận task Facebook Meta: {task_data}")
+    post_id = task_data.get("post_id")
     
-    crawl_method = task_payload.get("CrawlMethod")
-    post_id = task_payload.get("post_id")
+    # Rút một phiên bản Cookie từ kho đạn
+    cookie = cookie_manager.get_cookie()
+    if not cookie:
+        logger.error("Pool hiện tại không có Cookie nào rảnh. Thử lại sau.")
+        raise self.retry(countdown=60)
+
+    # Khởi tạo Core HTTP Web Crawler ẩn danh
+    crawler = FacebookWebCrawler()
     
+    # Biến Celery Sync func thành Async chạy mượt mà
     try:
-        # Lấy token từ pool
-        token = token_pool.get_token()
-        if not token:
-            raise Exception("Không có Facebook Graph Token nào khả dụng!")
-            
-        crawler = FacebookGraphCrawler(token)
-        result = None
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         
-        # Giả lập logic crawl
-        if crawl_method == 1:
-            logger.info(f"Crawl Metadata cho post {post_id}")
-            result = crawler.get_meta(post_id)
-        elif crawl_method == 2:
-            logger.info(f"Crawl Comment cho post {post_id}")
-            # result = crawler.get_comments(post_id)
-        else:
-            logger.info(f"Bỏ qua CrawlMethod không hỗ trợ: {crawl_method}")
-            
+    try:
+        # Chạy logic Scrape HTTP Request
+        result = loop.run_until_complete(crawler.crawl_post(post_id, cookie))
+        logger.info(f"Kết quả Scraping bằng Cookie: {result}")
         return {"status": "success", "post_id": post_id, "data": result}
         
+    except ValueError as e:
+        logger.warning(f"Cookie bị Checkpoint hoặc Limit: {e}")
+        cookie_manager.mark_cookie_bad(cookie)
+        raise self.retry(exc=e, countdown=30)
     except Exception as e:
-        logger.error(f"Lỗi khi crawl Facebook: {e}")
-        raise self.retry(exc=e, countdown=60)
+        logger.error(f"Lỗi chưa xác định trong quá trình Cào: {e}")
+        raise self.retry(exc=e, countdown=10)
+    finally:
+        loop.run_until_complete(crawler.close())

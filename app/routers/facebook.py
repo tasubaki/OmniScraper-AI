@@ -11,6 +11,9 @@ class CrawlPostRequest(BaseModel):
     post_id: str
     crawl_method: int = 1 # 1: Meta, 2: Comment, 3: Share
 
+class CookieSyncRequest(BaseModel):
+    cookie_text: str
+
 class CrawlPageRequest(BaseModel):
     page_id: str
     limit: int = 10
@@ -31,6 +34,22 @@ def crawl_single_post(request: CrawlPostRequest):
         queue="facebook-meta"
     )
     return {"status": "Task Queued", "task_id": task.id, "post_id": request.post_id}
+
+@router.post("/internal/sync-cookie", tags=["Internal"])
+async def sync_cookie(request: CookieSyncRequest):
+    """
+    API nội sinh dành cho OmniScraper-Extension tự động ném Cookie trộm được vứt vào Pool Python.
+    """
+    from app.core.config import settings
+    cookie_text = request.cookie_text
+    if cookie_text not in settings.fb_cookies:
+        settings.fb_cookies.append(cookie_text)
+    
+    return {
+        "status": "success", 
+        "message": "Cookie nhận an toàn!", 
+        "total_active_cookies": len(settings.fb_cookies)
+    }
 
 @router.post("/crawl-page")
 def crawl_page_posts(request: CrawlPageRequest, background_tasks: BackgroundTasks):
