@@ -65,8 +65,8 @@ docker-compose up --build
 
 ### Truy cập API
 Sau khi hệ thống khởi động, bạn có thể truy cập API tại:
-- **Swagger UI**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
+- **Swagger UI**: http://localhost:8001/docs
+- **Health Check**: http://localhost:8001/health
 
 ## 🎯 Cấu trúc dự án
 
@@ -106,14 +106,14 @@ OmniScraper-AI/
 
 ### Test Facebook
 ```bash
-curl -X POST "http://localhost:8000/api/facebook/crawl-post" \
+curl -X POST "http://localhost:8001/api/facebook/crawl-post" \
      -H "Content-Type: application/json" \
      -d '{"post_id": "1234567890", "crawl_method": 1}'
 ```
 
 ### Test TikTok
 ```bash
-curl -X POST "http://localhost:8000/api/tiktok/crawl-user" \
+curl -X POST "http://localhost:8001/api/tiktok/crawl-user" \
      -H "Content-Type: application/json" \
      -d '{"username": "testuser", "loop_count": 5}'
 ```

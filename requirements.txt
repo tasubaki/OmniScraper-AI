@@ -7,3 +7,4 @@ beautifulsoup4==4.12.3
 pydantic==2.7.1
 pydantic-settings==2.2.1
 sqlalchemy==2.0.30
+psycopg2-binary==2.9.9

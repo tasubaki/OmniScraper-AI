@@ -1,6 +1,9 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel
 from typing import List
+from sqlalchemy.orm import Session
+from app.db.session import get_db
+from app.db.models import FBCookie, CrawlTaskHistory
 from app.core.celery_app import celery_app
 from app.crawlers.facebook.post_crawler import FacebookGraphCrawler
 from app.core.token_manager import token_pool
@@ -19,7 +22,7 @@ class CrawlPageRequest(BaseModel):
     limit: int = 10
 
 @router.post("/crawl-post")
-def crawl_single_post(request: CrawlPostRequest):
+def crawl_single_post(request: CrawlPostRequest, db: Session = Depends(get_db)):
     """
     Kích hoạt task Celery để scrape 1 bài viết Facebook cụ thể.
     """
@@ -33,22 +36,31 @@ def crawl_single_post(request: CrawlPostRequest):
         },
         queue="facebook-meta"
     )
+    
+    history = CrawlTaskHistory(platform="facebook", target_id=request.post_id, task_type="crawl_post", celery_task_id=task.id)
+    db.add(history)
+    db.commit()
+    
     return {"status": "Task Queued", "task_id": task.id, "post_id": request.post_id}
 
 @router.post("/internal/sync-cookie", tags=["Internal"])
-async def sync_cookie(request: CookieSyncRequest):
+async def sync_cookie(request: CookieSyncRequest, db: Session = Depends(get_db)):
     """
-    API nội sinh dành cho OmniScraper-Extension tự động ném Cookie trộm được vứt vào Pool Python.
+    API nội sinh dành cho OmniScraper-Extension tự động ném Cookie lấy được lưu vào DB.
     """
-    from app.core.config import settings
     cookie_text = request.cookie_text
-    if cookie_text not in settings.fb_cookies:
-        settings.fb_cookies.append(cookie_text)
     
+    existing_cookie = db.query(FBCookie).filter(FBCookie.cookie_string == cookie_text).first()
+    if not existing_cookie:
+        new_cookie = FBCookie(cookie_string=cookie_text)
+        db.add(new_cookie)
+        db.commit()
+    
+    total = db.query(FBCookie).count()
     return {
         "status": "success", 
-        "message": "Cookie nhận an toàn!", 
-        "total_active_cookies": len(settings.fb_cookies)
+        "message": "Cookie nhận an toàn và đã lưu DB!", 
+        "total_active_cookies": total
     }
 
 @router.post("/crawl-page")

@@ -3,8 +3,8 @@ from app.core.config import settings
 
 celery_app = Celery(
     "omni_scraper",
-    broker=settings.RABBITMQ_URL,
-    backend=settings.REDIS_URL,
+    broker=settings.rabbitmq_url,
+    backend=settings.redis_url,
     include=[
         "app.workers.facebook_worker",
         "app.workers.tiktok_worker"
