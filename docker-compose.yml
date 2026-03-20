@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # --- INFRASTRUCTURE (HẠ TẦNG) ---
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: omniscraper_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: always
+
+  redis:
+    image: redis:alpine
+    container_name: omniscraper_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: omniscraper_pg
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: omniscraper_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  # --- OMNISCRAPER APPLICATIONS (ỨNG DỤNG) ---
+  api:
+    build: .
+    container_name: omniscraper_api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app  # Hot-reload cho dev
+    depends_on:
+      - rabbitmq
+      - redis
+      - postgres
+    restart: always
+
+  celery_worker:
+    build: .
+    container_name: omniscraper_celery
+    command: celery -A app.core.celery_app worker --loglevel=info -c 4
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      - rabbitmq
+      - redis
+    restart: always
+
+volumes:
+  rabbitmq_data:
+  redis_data:
+  postgres_data:
+
