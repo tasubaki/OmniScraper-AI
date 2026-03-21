@@ -26,7 +26,8 @@ class CrawlTaskHistory(Base):
     target_id = Column(String(255), nullable=False) # username tiktok hoặc post_id facebook
     task_type = Column(String(100), nullable=False) # 'crawl_user', 'crawl_post'
     celery_task_id = Column(String(255), nullable=True) # ID của task trong RabbitMQ/Celery
-    status = Column(String(50), default="PENDING") # PENDING, SUCCESS, FAILED
+    status = Column(Integer, default=1) # 1: PENDING, 2: SUCCESS, -1: FAILED
+    message = Column(Text, nullable=True) # Ghi chú lỗi nếu có
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class FacebookProfile(Base):

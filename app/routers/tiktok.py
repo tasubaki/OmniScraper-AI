@@ -21,6 +21,20 @@ class TikTokUserRequest(BaseModel):
 class TikTokVideoRequest(BaseModel):
     video_id: str
 
+class CookieSyncRequest(BaseModel):
+    cookie_text: str
+
+@router.post("/sync-cookie")
+def sync_tiktok_cookie(request: CookieSyncRequest):
+    """
+    (Dummy) Nhận cookie từ Extension. 
+    Hiện tại TikTok Crawler chưa cần dùng Cookie DB để chạy, nhưng mở Endpoint để Extension không bị 404.
+    """
+    return {
+        "status": "success", 
+        "message": "Đã nhận Cookie TikTok (Chưa lưu DB vì chưa cần thiết)"
+    }
+
 @router.post("/crawl-user")
 def crawl_user(request: TikTokUserRequest, db: Session = Depends(get_db)):
     """

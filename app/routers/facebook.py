@@ -43,7 +43,7 @@ def crawl_single_post(request: CrawlPostRequest, db: Session = Depends(get_db)):
     
     return {"status": "Task Queued", "task_id": task.id, "post_id": request.post_id}
 
-@router.post("/internal/sync-cookie", tags=["Internal"])
+@router.post("/sync-cookie", tags=["Internal"])
 async def sync_cookie(request: CookieSyncRequest, db: Session = Depends(get_db)):
     """
     API nội sinh dành cho OmniScraper-Extension tự động ném Cookie lấy được lưu vào DB.

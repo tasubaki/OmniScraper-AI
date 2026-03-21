@@ -1,4 +1,5 @@
 from celery import Celery
+from kombu import Queue
 from app.core.config import settings
 
 celery_app = Celery(
@@ -19,9 +20,15 @@ celery_app.conf.update(
     enable_utc=True,
     # Cấu hình worker concurrency (VD: 4 luồng)
     worker_concurrency=4,
+    # Khai báo tập trung danh sách các Queue tại đây để Worker tự động dỏng tai lên nghe
+    task_queues=(
+        Queue('celery', routing_key='celery'),
+        Queue('facebook-meta', routing_key='facebook-meta'),
+        Queue('tiktok-keyword', routing_key='tiktok-keyword'),
+    ),
     # Route tasks vào các queue tương ứng
     task_routes={
-        "app.workers.facebook_worker.process_metadata": {"queue": "facebook-meta"},
+        "facebook.crawl_meta": {"queue": "facebook-meta"},
         "app.workers.tiktok_worker.process_keyword": {"queue": "tiktok-keyword"},
     }
 )

@@ -6,10 +6,10 @@ class Settings(BaseSettings):
     database_url: str = Field(default="postgresql://user:password@host.docker.internal:5432/omniscraper", env="DATABASE_URL")
     
     # RabbitMQ Settings
-    rabbitmq_url: str = Field(default="amqp://guest:guest@localhost:5672//", env="RABBITMQ_URL")
+    rabbitmq_url: str = Field(default="amqp://guest:guest@rabbitmq:5672//", env="RABBITMQ_URL")
     
     # Redis Settings
-    redis_url: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
+    redis_url: str = Field(default="redis://redis:6379/0", env="REDIS_URL")
     
     # Facebook Settings
     fb_graph_tokens: str = Field(default="", env="FB_GRAPH_TOKENS")

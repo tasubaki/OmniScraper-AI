@@ -7,12 +7,14 @@ from app.db.models import CrawlTaskHistory
 
 logger = logging.getLogger(__name__)
 
-def update_task_status(task_id: str, st: str):
+def update_task_status(task_id: str, st: int, msg: str = None):
     db = SessionLocal()
     try:
         task = db.query(CrawlTaskHistory).filter(CrawlTaskHistory.celery_task_id == task_id).first()
         if task:
             task.status = st
+            if msg:
+                task.message = str(msg)
             db.commit()
     except Exception as e:
         logger.error(f"Lỗi cập nhật CSDL: {e}")
@@ -42,10 +44,10 @@ def process_keyword(self, task_payload: dict):
         # VD: send_task('save_post_content', args=[posts])
         
         logger.info(f"Đã crawl {len(posts)} posts cho từ khoá: {keyword}")
-        update_task_status(self.request.id, "SUCCESS")
+        update_task_status(self.request.id, 2)
         return {"status": "success", "found": len(posts)}
         
     except Exception as e:
         logger.error(f"Lỗi khi crawl TikTok keyword {keyword}: {e}")
-        update_task_status(self.request.id, "FAILED")
+        update_task_status(self.request.id, -1, str(e))
         raise self.retry(exc=e, countdown=60)
