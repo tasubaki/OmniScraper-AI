@@ -24,17 +24,6 @@ services:
       - redis_data:/data
     restart: always
 
-  postgres:
-    image: postgres:15-alpine
-    container_name: omniscraper_pg
-    environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: rootpassword
-      POSTGRES_DB: omniscraper_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: always
-
   # --- OMNISCRAPER APPLICATIONS (ỨNG DỤNG) ---
   api:
     build: .
@@ -46,10 +35,11 @@ services:
       - .env
     volumes:
       - .:/app  # Hot-reload cho dev
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - rabbitmq
       - redis
-      - postgres
     restart: always
 
   celery_worker:
@@ -60,6 +50,8 @@ services:
       - .env
     volumes:
       - .:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - rabbitmq
       - redis
@@ -68,5 +60,4 @@ services:
 volumes:
   rabbitmq_data:
   redis_data:
-  postgres_data:
 

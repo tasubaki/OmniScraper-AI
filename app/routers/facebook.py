@@ -27,9 +27,9 @@ def crawl_single_post(request: CrawlPostRequest, db: Session = Depends(get_db)):
     Kích hoạt task Celery để scrape 1 bài viết Facebook cụ thể.
     """
     task = celery_app.send_task(
-        "app.workers.facebook_worker.process_metadata",
+        "facebook.crawl_meta",
         kwargs={
-            "task_payload": {
+            "task_data": {
                 "post_id": request.post_id,
                 "CrawlMethod": request.crawl_method
             }

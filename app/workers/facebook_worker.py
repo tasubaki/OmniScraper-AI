@@ -4,8 +4,23 @@ from app.core.celery_app import celery_app
 from app.core.config import settings
 from app.core.cookie_manager import CookieManager
 from app.crawlers.facebook.web_crawler import FacebookWebCrawler
+from app.db.session import SessionLocal
+from app.db.models import CrawlTaskHistory
 
 logger = logging.getLogger(__name__)
+
+def update_task_status(task_id: str, st: str):
+    db = SessionLocal()
+    try:
+        task = db.query(CrawlTaskHistory).filter(CrawlTaskHistory.celery_task_id == task_id).first()
+        if task:
+            task.status = st
+            db.commit()
+    except Exception as e:
+        logger.error(f"Lỗi cập nhật CSDL: {e}")
+    finally:
+        db.close()
+
 
 # Khởi tạo Pool Backend
 cookie_manager = CookieManager(settings.fb_cookies)
@@ -39,6 +54,7 @@ def process_metadata(self, task_data: dict):
         # Chạy logic Scrape HTTP Request
         result = loop.run_until_complete(crawler.crawl_post(post_id, cookie))
         logger.info(f"Kết quả Scraping bằng Cookie: {result}")
+        update_task_status(self.request.id, "SUCCESS")
         return {"status": "success", "post_id": post_id, "data": result}
         
     except ValueError as e:
@@ -47,6 +63,7 @@ def process_metadata(self, task_data: dict):
         raise self.retry(exc=e, countdown=30)
     except Exception as e:
         logger.error(f"Lỗi chưa xác định trong quá trình Cào: {e}")
+        update_task_status(self.request.id, "FAILED")
         raise self.retry(exc=e, countdown=10)
     finally:
         loop.run_until_complete(crawler.close())

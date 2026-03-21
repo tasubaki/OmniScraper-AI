@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.core.config import settings
-from app.routers import facebook, tiktok
+from app.routers import facebook, tiktok, history
 from app.db.session import engine, Base
 import app.db.models
 
@@ -15,6 +15,7 @@ app = FastAPI(
 
 app.include_router(facebook.router, prefix="/api")
 app.include_router(tiktok.router, prefix="/api")
+app.include_router(history.router, prefix="/api")
 
 @app.get("/health")
 def health_check():

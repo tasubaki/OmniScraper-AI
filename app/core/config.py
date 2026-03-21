@@ -3,7 +3,7 @@ from pydantic import Field
 
 class Settings(BaseSettings):
     # Database Settings
-    database_url: str = Field(default="postgresql://root:rootpassword@postgres:5432/omniscraper", env="DATABASE_URL")
+    database_url: str = Field(default="postgresql://user:password@host.docker.internal:5432/omniscraper", env="DATABASE_URL")
     
     # RabbitMQ Settings
     rabbitmq_url: str = Field(default="amqp://guest:guest@localhost:5672//", env="RABBITMQ_URL")
